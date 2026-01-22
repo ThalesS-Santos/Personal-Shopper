@@ -36,7 +36,7 @@ export default function ConsultantAvatar({ isThinking, isTyping, className = "",
       <img 
         src={avatarImg} 
         alt="Personal Shopper" 
-        className={`w-full max-w-[400px] h-auto object-contain drop-shadow-2xl transition-all duration-500 ease-in-out ${getAnimation()}`}
+        className={`w-full max-w-[300px] h-auto object-contain drop-shadow-2xl transition-all duration-500 ease-in-out ${getAnimation()}`}
       />
     </div>
   );

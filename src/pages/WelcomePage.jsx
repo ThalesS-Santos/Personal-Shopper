@@ -1,26 +1,34 @@
+import { useNavigate } from 'react-router-dom';
 import ConsultantAvatar from '../components/avatar/ConsultantAvatar';
 import { MessageSquare, Search, Sparkles, ArrowRight } from 'lucide-react';
+import Navbar from '../components/layout/Navbar';
+import Hero from '../components/layout/Hero';
 
-export default function WelcomePage({ onStart }) {
+export default function WelcomePage() {
+  const navigate = useNavigate();
   return (
-    <div className="min-h-screen bg-navy-900 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-navy-900 text-white flex flex-col relative overflow-hidden">
       
-      {/* Background Glow Effects */}
+      <Navbar />
+      
+      <Hero />
+
+      {/* Background Glow Effects - Shared/Global for the page */}
       <div className="absolute top-[-10%] right-[-5%] w-[600px] h-[600px] bg-purple-600/20 rounded-full blur-[100px] pointer-events-none animate-pulse"></div>
       <div className="absolute bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none"></div>
       <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[60px] pointer-events-none"></div>
 
-      <div className="max-w-6xl mx-auto text-center z-10 space-y-16">
+      <div className="max-w-6xl mx-auto text-center z-10 space-y-16 pb-20 px-4">
         
-        {/* Hero Text */}
-        <div className="space-y-6 animate-fade-in-up">
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-tight drop-shadow-lg">
+        {/* Secondary Section Header */}
+        <div className="space-y-4 animate-fade-in-up pt-16 pb-8">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">
             A forma inteligente de <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-300 to-yellow-200">
               comprar para sua casa.
             </span>
-          </h1>
-          <p className="text-lg md:text-2xl text-gray-200 max-w-3xl mx-auto leading-relaxed font-light">
+          </h2>
+          <p className="text-base md:text-xl text-gray-400 max-w-2xl mx-auto font-light">
             Nossa IA analisa milhares de especificações, preços e reviews para que você nunca mais erre na escolha de um eletrodoméstico.
           </p>
         </div>
@@ -64,7 +72,7 @@ export default function WelcomePage({ onStart }) {
         {/* CTA Button */}
         <div className="animate-fade-in-up delay-500 pb-10">
           <button 
-            onClick={onStart}
+            onClick={() => navigate('/chat')}
             className="group relative inline-flex items-center justify-center px-10 py-5 text-xl font-bold text-white transition-all duration-300 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full hover:from-orange-400 hover:to-orange-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:shadow-[0_0_30px_rgba(249,115,22,0.6)]"
           >
             <span className="mr-3">Começar Consultoria Gratuita</span>
@@ -78,24 +86,26 @@ export default function WelcomePage({ onStart }) {
           </button>
         </div>
 
-        {/* Trust/Footer text */}
-        <p className="text-sm text-gray-500 animate-fade-in-up delay-700">
-          Mais de 10.000 escolhas inteligentes feitas este mês.
-        </p>
+        {/* Floating Corner Avatar with Greeting */}
+        <div className="fixed bottom-0 right-4 md:right-10 z-50 flex items-end animate-slide-up delay-1000">
+           <ConsultantAvatar 
+              bubbleContent={
+                  <>
+                    <p className="font-semibold text-sm">Olá! Sou sua Personal Shopper.</p>
+                    <p className="text-sm text-gray-600">Posso ajudar você a escolher o melhor produto hoje?</p>
+                  </>
+              }
+           />
+        </div>
 
       </div>
-
-      {/* Floating Corner Avatar with Greeting */}
-      <div className="fixed bottom-0 right-4 md:right-10 z-50 flex items-end animate-slide-up delay-1000">
-         <ConsultantAvatar 
-            bubbleContent={
-                <>
-                  <p className="font-semibold text-sm">Olá! Sou sua Personal Shopper.</p>
-                  <p className="text-sm text-gray-600">Posso ajudar você a escolher o melhor produto hoje?</p>
-                </>
-            }
-         />
-      </div>
+      
+      {/* Footer moved here */}
+      <footer className="bg-navy-900/50 border-t border-white/10 py-12 mt-auto relative z-10 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">
+          <p>&copy; 2026 Personal Shopper IA. Todos os direitos reservados.</p>
+        </div>
+      </footer>
     </div>
   );
 }
