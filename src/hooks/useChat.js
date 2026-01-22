@@ -44,7 +44,8 @@ export const useChat = () => {
     try {
       // 3. Minimum 3s Delay + API Call
       const delayPromise = new Promise(resolve => setTimeout(resolve, 3000));
-      const apiPromise = sendMessageToGemini(chatSession, text);
+      // Pass 'messages' (history) and 'text' (new message)
+      const apiPromise = sendMessageToGemini(messages, text);
 
       const [_, responseText] = await Promise.all([delayPromise, apiPromise]);
 

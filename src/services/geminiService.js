@@ -1,39 +1,47 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// geminiService.js - Now connecting to Python Backend (FastAPI)
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-const GEN_AI = new GoogleGenerativeAI(API_KEY);
-const MODEL = GEN_AI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const BACKEND_URL = "http://localhost:8000/chat";
 
 export const startChatSession = async () => {
-  try {
-    return MODEL.startChat({
-      history: [
-        {
-          role: "user",
-          parts: [{ text: "Você é uma assistente pessoal de compras especialista em eletrodomésticos chamada 'Gabi'. Seja simpática, breve, se não for coisas imporantes diga em 2 ou 3 frases, use emojis ocasionalmente e ajude o usuário a escolher o melhor produto. Responda sempre em português do Brasil, de forma abrasileirada, como se fosse uma amiga, evite repetir o que o usuário já disse, evite usar paranteses e coisas do tipo e palavras em negrito." }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Entendido! Serei sua consultora Gabi. Estou pronta para ajudar com eletrodomésticos de forma simpática e eficiente. 😊" }],
-        },
-      ],
-    });
-  } catch (error) {
-    console.error("Erro ao iniciar chat:", error);
-    return null;
-  }
+  // In the new architecture, session is stateless/managed by sending history.
+  // We return a "ready" status or simple object to stay compatible with hooks if needed,
+  // but mostly we just need the URL now.
+  console.log("Conectado ao backend Python Gabi.");
+  return { ready: true }; 
 };
 
-export const sendMessageToGemini = async (chatSession, message) => {
-  if (!chatSession) {
-    return "Desculpe, o chat não foi iniciado corretamente. Recarregue a página.";
-  }
-
+export const sendMessageToGemini = async (messagesHistory, newMessage) => {
   try {
-    const result = await chatSession.sendMessage(message);
-    return result.response.text();
+    // Convert frontend history to backend format
+    // Frontend: { type: 'bot' || 'user', text: '...' }
+    // Backend expects: { role: 'bot' || 'user', content: '...' }
+    const history = messagesHistory.map(msg => ({
+      role: msg.type,
+      content: msg.text
+    }));
+
+    const payload = {
+      message: newMessage,
+      history: history
+    };
+
+    const response = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Backend Error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.response;
+
   } catch (error) {
-    console.error("Erro na API Gemini:", error);
-    return "Desculpe, tive um probleminha técnico momentâneo. Podemos tentar de novo?";
+    console.error("Erro na comunicação com o backend:", error);
+    return "Desculpe, a Gabi está tirando um cochilo técnico (Erro de conexão com o servidor). Verifique se o backend Python está rodando!";
   }
 };
