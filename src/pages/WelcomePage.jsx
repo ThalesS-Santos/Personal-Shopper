@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ConsultantAvatar from '../components/avatar/ConsultantAvatar';
 import { MessageSquare, Search, Sparkles, ArrowRight } from 'lucide-react';
@@ -6,6 +7,34 @@ import Hero from '../components/layout/Hero';
 
 export default function WelcomePage() {
   const navigate = useNavigate();
+  const footerRef = useRef(null);
+  const [bottomOffset, setBottomOffset] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (footerRef.current) {
+        const footerRect = footerRef.current.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // If top of footer is visible (less than window height), calculate overlap
+        if (footerRect.top < windowHeight) {
+          const overlap = Math.max(0, windowHeight - footerRect.top);
+          setBottomOffset(overlap);
+        } else {
+          setBottomOffset(0);
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll); // Check on resize too
+    handleScroll(); // Initial check
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
   return (
     <div className="min-h-screen bg-navy-900 text-white flex flex-col relative overflow-hidden">
       
@@ -87,11 +116,15 @@ export default function WelcomePage() {
         </div>
 
         {/* Floating Corner Avatar with Greeting */}
-        <div className="fixed bottom-0 right-4 md:right-10 z-50 flex items-end animate-slide-up delay-1000">
+        <div 
+          className="fixed right-4 md:right-10 z-50 flex items-end animate-slide-up delay-1000 origin-bottom"
+          style={{ bottom: `${bottomOffset}px` }}
+        >
            <ConsultantAvatar 
+              className="w-40 md:w-56"
               bubbleContent={
                   <>
-                    <p className="font-semibold text-sm">Olá! Sou sua Personal Shopper.</p>
+                    <p className="font-semibold text-sm text-navy-900">Olá! Sou sua Personal Shopper.</p>
                     <p className="text-sm text-gray-600">Posso ajudar você a escolher o melhor produto hoje?</p>
                   </>
               }
@@ -101,8 +134,8 @@ export default function WelcomePage() {
       </div>
       
       {/* Footer moved here */}
-      <footer className="bg-navy-900/50 border-t border-white/10 py-12 mt-auto relative z-10 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 text-center text-gray-400 text-sm">
+      <footer ref={footerRef} className="bg-navy-900 border-t border-white/10 py-6 mt-auto relative z-10">
+        <div className="max-w-7xl mx-auto px-4 text-center text-gray-400 text-xs">
           <p>&copy; 2026 Personal Shopper IA. Todos os direitos reservados.</p>
         </div>
       </footer>

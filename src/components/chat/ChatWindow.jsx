@@ -1,20 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { 
-  Refrigerator, 
-  WashingMachine, 
-  ChefHat, 
-  Wind,
-  Sparkles 
-} from 'lucide-react';
+import avatarImg from '../../assets/avatar.png';
+import { Sparkles, User } from 'lucide-react';
 
-const categories = [
-  { id: 'fridge', label: 'Geladeiras', icon: Refrigerator },
-  { id: 'machine', label: 'Máquinas de Lavar', icon: WashingMachine },
-  { id: 'airfryer', label: 'Airfryers', icon: ChefHat },
-  { id: 'ac', label: 'Ar-Condicionado', icon: Wind },
-];
-
-export default function ChatWindow({ messages, isThinking, onCategorySelect, showCategories }) {
+export default function ChatWindow({ messages, isThinking, isDarkMode }) {
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -26,63 +14,67 @@ export default function ChatWindow({ messages, isThinking, onCategorySelect, sho
   }, [messages, isThinking]);
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-t-3xl shadow-xl border border-white/20 overflow-hidden flex flex-col flex-1">
-      {/* Header */}
-      <div className="bg-white/80 p-4 border-b border-gray-100 flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-3 h-3 rounded-full bg-red-400"></div>
-          <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-          <div className="w-3 h-3 rounded-full bg-green-400"></div>
-          <span className="ml-3 text-xs font-semibold text-gray-400 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-accent" /> IA Conectada
-          </span>
-        </div>
-      </div>
-
-      {/* Messages List */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50/50">
+    <div className={`flex flex-col flex-1 h-full overflow-hidden transition-colors duration-500 ${isDarkMode ? 'bg-navy-900' : 'bg-gray-50'}`}>
+      
+      {/* Messages List Area */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8 scroll-smooth custom-scrollbar">
         {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+          <div key={idx} className={`flex w-full ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+            
+            {/* AI Avatar Icon (Left) */}
+            {msg.type !== 'user' && (
+              <div className="flex-shrink-0 mr-4 self-end">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 p-[2px] shadow-lg">
+                   <div className="w-full h-full rounded-full bg-white overflow-hidden">
+                     <img src={avatarImg} alt="Gabi" className="w-full h-full object-cover object-top" />
+                   </div>
+                </div>
+              </div>
+            )}
+
+            {/* Message Bubble */}
             <div 
-              className={`max-w-[85%] p-4 rounded-2xl text-base leading-relaxed shadow-sm animate-fade-in-up ${
+              className={`max-w-[80%] md:max-w-[70%] p-5 md:p-6 text-base md:text-lg leading-relaxed shadow-md animate-fade-in-up transition-colors duration-300 ${
                 msg.type === 'user' 
-                  ? 'bg-navy-900 text-white rounded-br-none' 
-                  : 'bg-white border border-gray-100 text-gray-800 rounded-bl-none'
+                  ? 'bg-gradient-to-br from-navy-700 to-navy-900 text-white rounded-2xl rounded-tr-none' 
+                  : `rounded-2xl rounded-tl-none border ${isDarkMode ? 'bg-navy-800 border-navy-700 text-gray-100' : 'bg-white border-gray-100 text-gray-800'}`
               }`}
             >
               {msg.text}
             </div>
+
+            {/* User Icon (Right) - Optional, just a placeholder or initials */}
+            {msg.type === 'user' && (
+              <div className="flex-shrink-0 ml-4 self-end">
+                 <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${isDarkMode ? 'bg-navy-700 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                    <User className="w-5 h-5" />
+                 </div>
+              </div>
+            )}
           </div>
         ))}
 
+        {/* Thinking Indicator */}
         {isThinking && (
-          <div className="flex justify-start animate-fade-in">
-            <div className="bg-white border border-gray-100 p-4 rounded-2xl rounded-bl-none shadow-sm flex items-center space-x-1">
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+          <div className="flex justify-start w-full animate-pulse">
+             <div className="flex-shrink-0 mr-4 self-end">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-pink-500 p-[2px]">
+                   <div className="w-full h-full rounded-full bg-white overflow-hidden">
+                     <img src={avatarImg} alt="Gabi" className="w-full h-full object-cover object-top" />
+                   </div>
+                </div>
+              </div>
+            <div className={`p-4 rounded-2xl rounded-tl-none border flex items-center space-x-2 ${isDarkMode ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-100'}`}>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
             </div>
           </div>
         )}
         
         <div ref={messagesEndRef} />
-        
-        {/* Category Selection */}
-        {showCategories && !isThinking && (
-          <div className="grid grid-cols-2 gap-3 mt-4 animate-slide-up">
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => onCategorySelect(cat)}
-                className="flex flex-col items-center justify-center p-6 bg-white border-2 border-transparent hover:border-accent/30 hover:bg-orange-50/30 rounded-2xl shadow-sm hover:shadow-md transition-all group"
-              >
-                <cat.icon className="w-8 h-8 text-navy-800 group-hover:text-accent mb-3 transition-colors" />
-                <span className="font-semibold text-navy-900">{cat.label}</span>
-              </button>
-            ))}
-          </div>
-        )}
       </div>
+
     </div>
   );
 }

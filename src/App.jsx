@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import DiagnosticArea from './components/chat/DiagnosticArea';
 import WelcomePage from './pages/WelcomePage';
+import ChatPage from './pages/ChatPage';
 
 function App() {
   return (
@@ -9,11 +10,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<WelcomePage />} />
-          <Route path="/chat" element={
-            <div className="animate-fade-in min-h-screen flex flex-col justify-center py-10 bg-gray-50">
-               <DiagnosticArea />
-            </div>
-          } />
+          <Route path="/chat" element={<ChatPage />} />
         </Routes>
       </BrowserRouter>
     </div>

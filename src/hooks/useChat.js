@@ -3,8 +3,8 @@ import { startChatSession, sendMessageToGemini } from '../services/geminiService
 
 export const useChat = () => {
   const [messages, setMessages] = useState([
-    { type: 'bot', text: 'Olá! Sou sua consultora pessoal.' },
-    { type: 'bot', text: 'O que vamos escolher para sua casa hoje?' }
+    { type: 'bot', text: 'Olá! Sou a Gabi, sua Personal Shopper.' },
+    { type: 'bot', text: 'Como posso ajudar você a transformar sua casa hoje?' }
   ]);
   const [isThinking, setIsThinking] = useState(false);
   const [isTyping, setIsTyping] = useState(false);

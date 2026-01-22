@@ -5,6 +5,8 @@ export default {
     extend: {
       colors: {
         navy: {
+          600: "#475569", // Slate 600
+          700: "#334155", // Slate 700
           800: "#1e293b",
           900: "#0f172a",
         },
