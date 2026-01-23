@@ -1,8 +1,10 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import DiagnosticArea from './components/chat/DiagnosticArea';
 import WelcomePage from './pages/WelcomePage';
 import ChatPage from './pages/ChatPage';
+import HowItWorksPage from './pages/HowItWorksPage';
+import AboutPage from './pages/AboutPage';
+import ContactPage from './pages/ContactPage';
 
 function App() {
   return (
@@ -11,6 +13,9 @@ function App() {
         <Routes>
           <Route path="/" element={<WelcomePage />} />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/como-funciona" element={<HowItWorksPage />} />
+          <Route path="/sobre" element={<AboutPage />} />
+          <Route path="/contato" element={<ContactPage />} />
         </Routes>
       </BrowserRouter>
     </div>
