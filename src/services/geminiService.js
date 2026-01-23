@@ -1,6 +1,6 @@
 // geminiService.js - Now connecting to Python Backend (FastAPI)
 
-const BACKEND_URL = "http://localhost:8000/chat";
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/chat";
 
 export const startChatSession = async () => {
   // In the new architecture, session is stateless/managed by sending history.
@@ -15,10 +15,18 @@ export const sendMessageToGemini = async (messagesHistory, newMessage) => {
     // Convert frontend history to backend format
     // Frontend: { type: 'bot' || 'user', text: '...' }
     // Backend expects: { role: 'bot' || 'user', content: '...' }
-    const history = messagesHistory.map(msg => ({
-      role: msg.type,
+    // Sanitize History:
+    // 1. Map to backend format
+    let history = messagesHistory.map(msg => ({
+      role: msg.type, // 'user' or 'bot'
       content: msg.text
     }));
+
+    // 2. Remove leading 'bot' messages (Greetings)
+    // Gemini history should usually start with User.
+    while (history.length > 0 && history[0].role === 'bot') {
+      history.shift();
+    }
 
     const payload = {
       message: newMessage,
@@ -33,6 +41,10 @@ export const sendMessageToGemini = async (messagesHistory, newMessage) => {
       body: JSON.stringify(payload),
     });
 
+    if (response.status === 429) {
+      return "Epa! Calma aí, amigo. Estou processando muitas perguntas. Tenta de novo em um minutinho? ☕";
+    }
+
     if (!response.ok) {
       throw new Error(`Backend Error: ${response.statusText}`);
     }
@@ -41,7 +53,8 @@ export const sendMessageToGemini = async (messagesHistory, newMessage) => {
     return data.response;
 
   } catch (error) {
-    console.error("Erro na comunicação com o backend:", error);
-    return "Desculpe, a Gabi está tirando um cochilo técnico (Erro de conexão com o servidor). Verifique se o backend Python está rodando!";
+    console.error("Erro DETALHADO na comunicação:", error);
+    // Return specific error to help diagnosis
+    return `⚠️ Erro de Conexão: ${error.message || error}. \nVerifique se o backend está rodando em ${BACKEND_URL}`;
   }
 };
