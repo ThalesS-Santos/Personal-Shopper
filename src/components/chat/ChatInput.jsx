@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send } from 'lucide-react';
 
 export default function ChatInput({ onSend, onType, disabled, isDarkMode }) {
   const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef(null);
+
+  // Auto-focus logic:
+  // 1. When component mounts
+  // 2. When disabled state changes to false (Bot finished thinking)
+  useEffect(() => {
+    if (!disabled) {
+      // Small timeout to ensure DOM is ready and prevent racing with UI updates
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
+    }
+  }, [disabled]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -10,6 +23,11 @@ export default function ChatInput({ onSend, onType, disabled, isDarkMode }) {
     
     onSend(inputValue);
     setInputValue('');
+    
+    // Keep focus after sending
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 10);
   };
 
   const handleChange = (e) => {
@@ -21,6 +39,7 @@ export default function ChatInput({ onSend, onType, disabled, isDarkMode }) {
     <div className={`p-0 w-full rounded-2xl transition-colors duration-300 ${isDarkMode ? 'bg-navy-800' : 'bg-white'}`}>
       <form onSubmit={handleSubmit} className="relative flex items-center shadow-lg rounded-2xl overflow-visible ring-1 ring-black/5 dark:ring-white/10">
         <input
+          ref={inputRef}
           type="text"
           value={inputValue}
           onChange={handleChange}
