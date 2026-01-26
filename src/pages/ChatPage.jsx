@@ -7,7 +7,7 @@ import { Moon, Sun, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function ChatPage() {
-  const { messages, isThinking, isTyping, handleTyping, addUserMessage } = useChat();
+  const { messages, isThinking, isSearching, isTyping, handleTyping, addUserMessage } = useChat();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
 
@@ -48,6 +48,7 @@ export default function ChatPage() {
             <ChatWindow 
               messages={messages} 
               isThinking={isThinking}
+              isSearching={isSearching}
               isDarkMode={isDarkMode}
             />
             

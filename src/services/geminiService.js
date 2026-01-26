@@ -1,6 +1,6 @@
 // geminiService.js - Now connecting to Python Backend (FastAPI)
 
-const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/chat";
+const BACKEND_URL = import.meta.env.VITE_API_URL || "http://localhost:8001/chat";
 
 export const startChatSession = async () => {
   // In the new architecture, session is stateless/managed by sending history.

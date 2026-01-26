@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, constr
 from dotenv import load_dotenv
 from pathlib import Path
+import requests
 
 # Google Gemini New SDK
 from google import genai
@@ -28,6 +29,9 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
+SERPAPI_KEY = os.getenv("SERPAPI_KEY")
+RAINFOREST_KEY = os.getenv("RAINFOREST_API_KEY")
+
 if not API_KEY:
     logger.critical("Erro Crítico: GEMINI_API_KEY não encontrada no arquivo .env")
     raise ValueError("GEMINI_API_KEY must be set in .env")
@@ -41,44 +45,98 @@ limiter = Limiter(key_func=get_remote_address)
 
 # --- 4. Ferramentas e Configuração do Gemini ---
 
-# 1. Função de busca de preços (Simulação para o Gemini usar)
-def get_product_prices(product_name: str):
-    """Busca o preço médio e lojas disponíveis para um eletrodoméstico específico."""
-    logger.info(f"Executando ferramenta de preço para: {product_name}")
-    return {
-        "product": product_name,
-        "average_price": "R$ 3.499,00",
-        "stores": ["Fast Shop", "Mercado Livre", "Magalu"],
-        "price_trend": "estável com leve queda",
-        "last_updated": "2026-01-22"
-    }
+# --- 3. Ferramentas de Busca Real (RAG) ---
 
-# 2. Definição das Tools (Google Search + Ferramenta de Preço)
+def search_google_shopping(product_name: str):
+    """Busca preços e lojas reais no Google Shopping via SerpApi."""
+    logger.info(f"RAG: Buscando no Google Shopping: {product_name}")
+    if not SERPAPI_KEY: return {"error": "SerpApi key missing"}
+    
+    url = "https://serpapi.com/search"
+    params = {
+        "engine": "google_shopping",
+        "q": product_name,
+        "hl": "pt-br",
+        "gl": "br",
+        "api_key": SERPAPI_KEY
+    }
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        results = data.get("shopping_results", [])[:3]
+        return [{"title": r.get("title"), "price": r.get("price"), "source": r.get("source"), "link": r.get("link")} for r in results]
+    except Exception as e:
+        logger.error(f"Erro SerpApi: {e}")
+        return {"error": "Falha no Google Shopping"}
+
+def search_amazon_prices(product_name: str):
+    """Busca preços e disponibilidade na Amazon via Rainforest API."""
+    logger.info(f"RAG: Buscando na Amazon: {product_name}")
+    if not RAINFOREST_KEY: return {"error": "Rainforest key missing"}
+    
+    url = "https://api.rainforestapi.com/request"
+    params = {
+        "api_key": RAINFOREST_KEY,
+        "type": "search",
+        "amazon_domain": "amazon.com.br",
+        "search_term": product_name
+    }
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        results = response.json().get("search_results", [])[:2]
+        return [{"title": r.get("title"), "price": r.get("price", {}).get("raw"), "link": r.get("link")} for r in results]
+    except Exception as e:
+        logger.error(f"Erro Rainforest: {e}")
+        return {"error": "Falha na Amazon"}
+
+def search_technical_specs(query: str):
+    """Busca especificações técnicas, reviews e detalhes de durabilidade na web."""
+    logger.info(f"RAG: Buscando especificações técnicas: {query}")
+    if not SERPAPI_KEY: return {"error": "SerpApi key missing"}
+    
+    url = "https://serpapi.com/search"
+    params = {
+        "engine": "google",
+        "q": query + " especificações técnicas ficha técnica",
+        "hl": "pt-br",
+        "gl": "br",
+        "api_key": SERPAPI_KEY
+    }
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        data = response.json()
+        results = data.get("organic_results", [])[:2]
+        return [{"title": r.get("title"), "snippet": r.get("snippet"), "link": r.get("link")} for r in results]
+    except Exception as e:
+        logger.error(f"Erro Busca Técnica: {e}")
+        return {"error": "Falha na busca técnica"}
+
+# 2. Definição das Tools (Unificadas para compatibilidade com 2.5-flash)
 TOOLS = [
-    get_product_prices, # O SDK gera a declaração automaticamente
-    types.Tool(google_search=types.GoogleSearchRetrieval()) # Busca Google
+    search_google_shopping,
+    search_amazon_prices,
+    search_technical_specs
 ]
 
 
 client = genai.Client(api_key=API_KEY)
-MODEL_NAME = "gemini-2.5-flash" # Upgrade para 2.0 para melhor suporte a tools
+MODEL_NAME = "gemini-2.5-flash"
 
 # Persona Especialista com Guardrails e Instruções de Tools
 SYSTEM_INSTRUCTION = """
 # PERSONA
 Você é a 'Gabi', uma assistente pessoal de compras brasileira, expert em eletrodomésticos. Seu tom é amigável, como uma amiga próxima, mas com autoridade técnica. Você fala de forma 'abrasileirada', usa emojis ocasionalmente e é sempre breve (máximo 3 frases, a menos que explique especificações complexas).
-# DOMÍNIO DE CONHECIMENTO
-- Você entende tudo sobre: Geladeiras (Inverter, Frost Free), Máquinas de Lavar, Fogões, Micro-ondas, Ar-condicionado e pequenos eletros.
-- Você sabe explicar termos técnicos (ex: compressor Inverter) de forma simples para ajudar na escolha.
-# DIRETRIZES DE FERRAMENTAS
-- Use a BUSCA DO GOOGLE (Google Search) sempre que precisar validar dados técnicos recentes ou ler reviews.
-- Use a FUNÇÃO get_product_prices para dar estimativas de preços reais e lojas aos usuários.
+
+# DIRETRIZES RAG (OBRIGATÓRIO)
+- Antes de recomendar qualquer produto, SEMPRE valide preços e estoque real usando `search_google_shopping` ou `search_amazon_prices`.
+- Use `search_technical_specs` para validar detalhes técnicos, ler reviews reais ou pesquisar o que não encontrar sobre um modelo.
+- Se houver divergência de preços, aponte a melhor oportunidade de custo-benefício.
 
 # MECANISMOS DE SEGURANÇA (GUARDRAILS)
 1. FOCO TOTAL: Se o usuário perguntar sobre qualquer assunto fora de eletrodomésticos, responda: "Ih, amigo(a), disso eu não entendo nada! 😅 Vamos voltar para os eletros?"
 2. COMPORTAMENTO: Nunca use palavras de baixo calão.
 3. PRIVACIDADE: Nunca peça dados pessoais.
-4. FORMATAÇÃO: Nunca use negrito, parênteses desnecessários ou repita o que o usuário já disse.
+4. FORMATAÇÃO: Use negrito para destacar nomes de produtos, preços ou termos importantes. Use listas para facilitar a leitura se houver muitos detalhes.
 """
 
 # Configurações de Segurança Nativas do Modelo (Safety Settings)
@@ -93,8 +151,8 @@ CHAT_CONFIG = types.GenerateContentConfig(
     system_instruction=SYSTEM_INSTRUCTION,
     safety_settings=SAFETY_SETTINGS,
     tools=TOOLS,
-    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False),
-    temperature=0.3,   # Precisão máxima para dados técnicos
+    automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=False, maximum_remote_calls=30),
+    temperature=0.2,   
     top_p=0.8,
     max_output_tokens=1024,
 )
@@ -125,6 +183,10 @@ app.add_middleware(
 )
 
 # --- 7. Endpoints ---
+@app.get("/")
+def read_root():
+    return {"message": "Gabi Personal Shopper API is running!", "endpoints": ["/chat", "/health"]}
+
 @app.get("/health")
 def health_check():
     return {"status": "healthy", "model": MODEL_NAME}
@@ -176,5 +238,5 @@ async def chat_endpoint(request: Request, chat_req: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    # Configurado para rodar na porta 8000
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Configurado para rodar na porta 8001 para evitar conflitos de porta (8000 costuma ficar em TIME_WAIT)
+    uvicorn.run(app, host="0.0.0.0", port=8001)

@@ -7,6 +7,7 @@ export const useChat = () => {
     { type: 'bot', text: 'Como posso ajudar você a transformar sua casa hoje?' }
   ]);
   const [isThinking, setIsThinking] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [chatSession, setChatSession] = useState(null);
   
@@ -23,7 +24,7 @@ export const useChat = () => {
 
   // Handle Typing Animation Logic
   const handleTyping = () => {
-    if (!isThinking) {
+    if (!isThinking && !isSearching) {
       setIsTyping(true);
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       typingTimeoutRef.current = setTimeout(() => {
@@ -40,11 +41,11 @@ export const useChat = () => {
     // 2. Set States
     setIsTyping(false);
     setIsThinking(true);
+    setIsSearching(true); // Gabi is now looking on the web
 
     try {
-      // 3. Minimum 3s Delay + API Call
-      const delayPromise = new Promise(resolve => setTimeout(resolve, 3000));
-      // Pass 'messages' (history) and 'text' (new message)
+      // 3. For RAG, we use a slightly longer delay to show "Searching" status
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 4000));
       const apiPromise = sendMessageToGemini(messages, text);
 
       const [_, responseText] = await Promise.all([delayPromise, apiPromise]);
@@ -52,15 +53,17 @@ export const useChat = () => {
       // 4. Add Bot Response
       setMessages(prev => [...prev, { type: 'bot', text: responseText }]);
     } catch (error) {
-      setMessages(prev => [...prev, { type: 'bot', text: "Erro ao processar resposta." }]);
+      setMessages(prev => [...prev, { type: 'bot', text: "Ih, tive um probleminha na pesquisa! Pode tentar de novo? 😅" }]);
     } finally {
       setIsThinking(false);
+      setIsSearching(false);
     }
   };
 
   return {
     messages,
     isThinking,
+    isSearching,
     isTyping,
     handleTyping,
     addUserMessage
