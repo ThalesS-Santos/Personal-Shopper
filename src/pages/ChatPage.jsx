@@ -3,8 +3,9 @@ import ChatWindow from '../components/chat/ChatWindow';
 import ChatInput from '../components/chat/ChatInput';
 import { useChat } from '../hooks/useChat';
 import Navbar from '../components/layout/Navbar';
-import { Moon, Sun, ArrowLeft } from 'lucide-react';
+import { Moon, Sun, ArrowLeft, User } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function ChatPage() {
   const { messages, isThinking, isSearching, isTyping, handleTyping, addUserMessage } = useChat();
@@ -30,6 +31,16 @@ export default function ChatPage() {
         </button>
 
         <div className="flex items-center gap-4">
+          {/* User Profile Button */}
+          <button
+             onClick={() => navigate('/profile')}
+             className={`p-2 rounded-full transition-all duration-300 flex items-center gap-2 ${isDarkMode ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}
+             title="Meu Perfil"
+          >
+             <User className="w-5 h-5" />
+             <span className="hidden md:inline text-sm font-medium">Perfil</span>
+          </button>
+
           <button
             onClick={toggleTheme}
             className={`p-2 rounded-full transition-all duration-300 ${isDarkMode ? 'bg-white/10 text-yellow-300 hover:bg-white/20' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
