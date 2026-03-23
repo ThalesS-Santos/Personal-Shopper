@@ -7,13 +7,33 @@ import Navbar from '../components/layout/Navbar';
 import { Moon, Sun, ArrowLeft, User, History, MessageSquarePlus, X, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import DiagnosticArea from '../components/DiagnosticArea';
+import { USE_MOCK_ERRORS } from '../services/geminiService';
 
 export default function ChatPage() {
   const { messages, isThinking, isSearching, handleTyping, addUserMessage } = useChat();
-  const { sessions, createNewSession, loadSession, currentSessionId } = useChatContext();
+  const { sessions, createNewSession, loadSession, currentSessionId, errorState } = useChatContext();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const navigate = useNavigate();
+
+  // ATALHO SECRETO PARA MOCK ERRORS (Ctrl+Shift+E)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey && e.shiftKey && e.key === 'E') {
+        USE_MOCK_ERRORS.active = !USE_MOCK_ERRORS.active;
+        if (USE_MOCK_ERRORS.active) {
+           const types = ["timeout", "offline", "rate_limit"];
+           USE_MOCK_ERRORS.type = types[Math.floor(Math.random() * types.length)];
+           alert(`🚨 MOCK ERRORS ATIVO! Tipo: ${USE_MOCK_ERRORS.type.toUpperCase()}`);
+        } else {
+           alert("✅ MOCK ERRORS DESATIVADO!");
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Toggle Dark Mode
   const toggleTheme = () => {
@@ -138,10 +158,17 @@ export default function ChatPage() {
         )}
 
         {/* Main Chat Area */}
-        <main className={`flex-1 transition-all duration-300 flex flex-col p-4 md:p-6`}>
-          <div className="max-w-5xl w-full mx-auto flex-1 flex flex-col h-full">
-            <div className={`flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl transition-all duration-500 border ${isDarkMode ? 'bg-navy-800/50 border-white/10' : 'bg-white border-white/40'}`}>
+        <main className={`flex-1 transition-all duration-300 flex flex-col p-4 md:p-6 relative`}>
+          <div className="max-w-5xl w-full mx-auto flex-1 flex flex-col h-full relative">
+            <div className={`flex-1 flex flex-col rounded-3xl overflow-hidden shadow-2xl transition-all duration-500 border relative ${isDarkMode ? 'bg-navy-800/50 border-white/10' : 'bg-white border-white/40'}`}>
                 
+                {/* Error Overlay */}
+                {errorState && (
+                  <div className="absolute inset-0 z-[45] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+                    <DiagnosticArea />
+                  </div>
+                )}
+
                 <ChatWindow 
                   messages={messages} 
                   isThinking={isThinking}
@@ -149,11 +176,11 @@ export default function ChatPage() {
                   isDarkMode={isDarkMode}
                 />
                 
-                <div className={`p-4 md:p-6 ${isDarkMode ? 'bg-navy-800/80' : 'bg-white/80'}`}>
+                <div className={`p-4 md:p-6 relative z-40 ${isDarkMode ? 'bg-navy-800/80' : 'bg-white/80'}`}>
                   <ChatInput 
                     onSend={(text) => addUserMessage(text)} 
                     onType={handleTyping} 
-                    disabled={isThinking} 
+                    disabled={isThinking || !!errorState} 
                     isDarkMode={isDarkMode}
                   />
                 </div>

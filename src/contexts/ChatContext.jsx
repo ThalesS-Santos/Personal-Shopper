@@ -33,6 +33,26 @@ export function ChatProvider({ children }) {
   const [isSearching, setIsSearching] = useState(false);
   const [userContext, setUserContext] = useState(null);
 
+  // Error States
+  const [errorState, setErrorState] = useState(null);
+  const [sessionErrorLog, setSessionErrorLog] = useState([]);
+  const [lastUserMessage, setLastUserMessage] = useState("");
+
+  const clearErrorState = useCallback(() => {
+    setErrorState(null);
+  }, []);
+
+  const retryLastMessage = useCallback(() => {
+    clearErrorState();
+    if (lastUserMessage) {
+      setMessages(prev => {
+        const lastMsgIndex = prev.findLastIndex(m => m.type === 'user');
+        return lastMsgIndex !== -1 ? prev.slice(0, lastMsgIndex) : prev;
+      });
+      addUserMessage(lastUserMessage);
+    }
+  }, [lastUserMessage, clearErrorState]);
+
   // Load User Context from Firestore
   useEffect(() => {
     const loadUserContext = async () => {
@@ -91,8 +111,10 @@ export function ChatProvider({ children }) {
       { type: 'bot', text: 'Como posso ajudar você a transformar sua casa hoje?' }
     ]);
     setCurrentSessionId(null);
+    clearErrorState();
+    setSessionErrorLog([]);
     sessionStorage.removeItem('currentChatSessionId');
-  }, []);
+  }, [clearErrorState]);
 
   const loadSession = useCallback(async (sessionId) => {
     try {
@@ -110,6 +132,9 @@ export function ChatProvider({ children }) {
   }, []);
 
   const addUserMessage = async (text) => {
+    if (errorState) return;
+
+    setLastUserMessage(text);
     const newUserMessage = { type: 'user', text, timestamp: new Date().toISOString() };
     const updatedMessages = [...messages, newUserMessage];
     setMessages(updatedMessages);
@@ -119,7 +144,7 @@ export function ChatProvider({ children }) {
 
     try {
       // 1. Get Response from Gemini
-      const responseText = await sendMessageToGemini(messages, text, userContext);
+      const responseText = await sendMessageToGemini(updatedMessages, text, userContext);
       const botResponse = { type: 'bot', text: responseText, timestamp: new Date().toISOString() };
       const finalMessages = [...updatedMessages, botResponse];
       
@@ -149,7 +174,9 @@ export function ChatProvider({ children }) {
       }
     } catch (error) {
       console.error("Error in chat flow:", error);
-      setMessages(prev => [...prev, { type: 'bot', text: "Ih, tive um probleminha na pesquisa! Pode tentar de novo? 😅" }]);
+      error.timestamp = Date.now();
+      setErrorState(error);
+      setSessionErrorLog(prev => [...prev, error]);
     } finally {
       setIsThinking(false);
       setIsSearching(false);
@@ -162,6 +189,10 @@ export function ChatProvider({ children }) {
     currentSessionId,
     isThinking,
     isSearching,
+    errorState,
+    sessionErrorLog,
+    clearErrorState,
+    retryLastMessage,
     createNewSession,
     loadSession,
     addUserMessage,
