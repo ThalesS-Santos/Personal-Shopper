@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, ShoppingBag } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Menu, X, ShoppingBag, User } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -24,6 +27,14 @@ export default function Navbar() {
     ? 'bg-white text-navy-900 hover:bg-gray-100 shadow-lg' 
     : 'bg-navy-900 text-white hover:bg-navy-800';
 
+  const handleAuthAction = () => {
+    if (currentUser) {
+      navigate('/profile');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <nav className={`fixed w-full top-0 z-50 transition-all duration-300 ${navBg}`}>
       <div className="w-full px-6 md:px-10">
@@ -39,8 +50,11 @@ export default function Navbar() {
             <Link to="/como-funciona" className={`font-medium transition-colors duration-300 ${textColor}`}>Como funciona</Link>
             <Link to="/sobre" className={`font-medium transition-colors duration-300 ${textColor}`}>Sobre</Link>
             <Link to="/contato" className={`font-medium transition-colors duration-300 ${textColor}`}>Contato</Link>
-            <button className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5 ${buttonStyle}`}>
-              Login
+            <button 
+              onClick={handleAuthAction}
+              className={`px-6 py-2.5 rounded-full font-medium transition-all duration-300 hover:shadow-lg transform hover:-translate-y-0.5 ${buttonStyle} flex items-center gap-2`}
+            >
+              {currentUser ? <><User size={18} /> Perfil</> : 'Login'}
             </button>
           </div>
 
@@ -57,12 +71,17 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 animate-slide-down">
+        <div className="md:hidden bg-white border-t border-gray-100 animate-slide-down shadow-xl">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link to="/como-funciona" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-navy-900 hover:bg-gray-50">Como funciona</Link>
             <Link to="/sobre" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-navy-900 hover:bg-gray-50">Sobre</Link>
             <Link to="/contato" className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-navy-900 hover:bg-gray-50">Contato</Link>
-            <a href="#" className="block w-full text-left px-3 py-2 text-base font-medium text-accent hover:bg-gray-50">Login</a>
+            <button 
+              onClick={handleAuthAction}
+              className="block w-full text-left px-3 py-2 text-base font-medium text-accent hover:bg-gray-50 bg-orange-50/50 rounded-md"
+            >
+              {currentUser ? 'Meu Perfil' : 'Fazer Login'}
+            </button>
           </div>
         </div>
       )}

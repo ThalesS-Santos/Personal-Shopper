@@ -1,11 +1,13 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 
 export default function LoginPage() {
   const { loginWithGoogle, currentUser } = useAuth();
   const navigate = useNavigate();
+  const { error: errorToast } = useToast();
 
   React.useEffect(() => {
     if (currentUser) {
@@ -19,7 +21,7 @@ export default function LoginPage() {
       navigate('/profile');
     } catch (error) {
       console.error("Failed to login", error);
-      alert("Falha ao fazer login. Tente novamente.");
+      errorToast("Falha ao fazer login. Tente novamente.");
     }
   };
 

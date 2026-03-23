@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from '../contexts/ToastContext';
 import { db, storage } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -9,12 +10,12 @@ import { useNavigate } from 'react-router-dom';
 export default function ProfilePage() {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
+  const { success: successToast, error: errorToast } = useToast();
   const [loading, setLoading] = useState(false);
   
   // Form States
   const [displayName, setDisplayName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [clothingSize, setClothingSize] = useState('');
   const [stylePreference, setStylePreference] = useState('');
   const [photoURL, setPhotoURL] = useState('');
   
@@ -31,7 +32,6 @@ export default function ProfilePage() {
       const data = docSnap.data();
       setDisplayName(data.displayName || '');
       setPhoneNumber(data.phoneNumber || '');
-      setClothingSize(data.clothingSize || '');
       setStylePreference(data.stylePreference || '');
       setPhotoURL(data.photoURL || currentUser.photoURL);
     }
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     } catch (error) {
       console.error("Error uploading image:", error);
       setLoading(false);
-      alert("Erro ao fazer upload da imagem.");
+      errorToast("Erro ao fazer upload da imagem.");
     }
   };
 
@@ -67,14 +67,13 @@ export default function ProfilePage() {
       await updateDoc(userRef, {
         displayName,
         phoneNumber,
-        clothingSize,
         stylePreference,
         photoURL
       });
-      alert("Perfil atualizado com sucesso!");
+      successToast("Perfil atualizado com sucesso!");
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Erro ao atualizar perfil.");
+      errorToast("Erro ao atualizar perfil.");
     } finally {
       setLoading(false);
     }
@@ -134,33 +133,15 @@ export default function ProfilePage() {
                     />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Celular / WhatsApp</label>
-                        <input 
-                            type="tel" 
-                            value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
-                            placeholder="(00) 00000-0000"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Tamanho de Roupa Usual</label>
-                         <select 
-                            value={clothingSize}
-                            onChange={(e) => setClothingSize(e.target.value)}
-                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all bg-white"
-                        >
-                            <option value="">Selecione...</option>
-                            <option value="PP">PP</option>
-                            <option value="P">P</option>
-                            <option value="M">M</option>
-                            <option value="G">G</option>
-                            <option value="GG">GG</option>
-                            <option value="XG">XG</option>
-                        </select>
-                    </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Celular / WhatsApp</label>
+                    <input 
+                        type="tel" 
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none transition-all"
+                        placeholder="(00) 00000-0000"
+                    />
                 </div>
 
                 <div>

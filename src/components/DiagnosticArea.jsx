@@ -8,13 +8,7 @@ import {
   Sparkles 
 } from 'lucide-react';
 import avatarImg from '../assets/avatar.png';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// --- CONFIGURATION ---
-// SUBSTITUA PELA SUA CHAVE DE API REAL DO GEMINI
-const API_KEY = "AIzaSyBWyzoit0iAb1wZ8fbc_sWhhVL_5SOf4jI"; 
-const GEN_AI = new GoogleGenerativeAI(API_KEY);
-const MODEL = GEN_AI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
 const categories = [
   { id: 'fridge', label: 'Geladeiras', icon: Refrigerator },
@@ -33,9 +27,6 @@ export default function DiagnosticArea() {
     { type: 'bot', text: 'O que vamos escolher para sua casa hoje?' }
   ]);
   
-  // Chat session storage
-  const [chatSession, setChatSession] = useState(null);
-
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
@@ -46,30 +37,6 @@ export default function DiagnosticArea() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isThinking]);
-
-  // Initial Chat Session Setup
-  useEffect(() => {
-    const initChat = async () => {
-      try {
-        const chat = MODEL.startChat({
-          history: [
-            {
-              role: "user",
-              parts: [{ text: "Você é uma assistente pessoal de compras especialista em eletrodomésticos. Seja simpática, breve e ajude o usuário a escolher o melhor produto." }],
-            },
-            {
-              role: "model",
-              parts: [{ text: "Entendido! Serei uma consultora de compras amigável e especialista." }],
-            },
-          ],
-        });
-        setChatSession(chat);
-      } catch (error) {
-        console.error("Erro ao iniciar chat:", error);
-      }
-    };
-    initChat();
-  }, []);
 
   const handleInputChange = (e) => {
     setInputValue(e.target.value);
@@ -83,26 +50,40 @@ export default function DiagnosticArea() {
     }
   };
 
-  const processResponse = async (userMessage) => {
+  const processResponse = async (userMessage, currentHistory) => {
     setIsTyping(false);
     setIsThinking(true);
 
     try {
+      const formattedHistory = currentHistory.map(msg => ({
+        role: msg.type === 'bot' ? 'bot' : 'user',
+        content: msg.text
+      }));
+
+      const apiPromise = fetch("http://localhost:8001/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: userMessage,
+          history: formattedHistory
+        })
+      }).then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.detail || "Erro na API");
+        return data.response;
+      });
+
       // 1. Min 3s Delay Promise
       const delayPromise = new Promise(resolve => setTimeout(resolve, 3000));
       
-      // 2. API Call Promise
-      const apiPromise = chatSession ? chatSession.sendMessage(userMessage) : Promise.resolve({ response: { text: () => "Erro: Chat não iniciado." } });
-
       // Wait for BOTH
-      const [_, result] = await Promise.all([delayPromise, apiPromise]);
-      const responseText = result.response.text();
+      const [_, responseText] = await Promise.all([delayPromise, apiPromise]);
 
       setMessages(prev => [...prev, { type: 'bot', text: responseText }]);
 
     } catch (error) {
       console.error("Erro na API:", error);
-      setMessages(prev => [...prev, { type: 'bot', text: "Desculpe, tive um probleminha técnico. Podemos tentar de novo?" }]);
+      setMessages(prev => [...prev, { type: 'bot', text: "Desculpe, tive um probleminha de conexão com o servidor. Podemos tentar de novo?" }]);
     } finally {
       setIsThinking(false);
     }
@@ -112,8 +93,8 @@ export default function DiagnosticArea() {
     setSelectedCategory(category);
     const userText = `Estou procurando por ${category.label}.`;
     
+    processResponse(userText, messages);
     setMessages(prev => [...prev, { type: 'user', text: userText }]);
-    processResponse(userText);
   };
 
   const handleSend = (e) => {
@@ -121,10 +102,10 @@ export default function DiagnosticArea() {
     if (!inputValue.trim()) return;
 
     const userText = inputValue;
+    processResponse(userText, messages);
+    
     setMessages(prev => [...prev, { type: 'user', text: userText }]);
     setInputValue('');
-    
-    processResponse(userText);
   };
 
   const getAvatarAnimation = () => {

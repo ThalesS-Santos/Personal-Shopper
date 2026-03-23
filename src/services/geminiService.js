@@ -10,7 +10,7 @@ export const startChatSession = async () => {
   return { ready: true }; 
 };
 
-export const sendMessageToGemini = async (messagesHistory, newMessage) => {
+export const sendMessageToGemini = async (messagesHistory, newMessage, userContext = null) => {
   try {
     // Convert frontend history to backend format
     // Frontend: { type: 'bot' || 'user', text: '...' }
@@ -30,7 +30,8 @@ export const sendMessageToGemini = async (messagesHistory, newMessage) => {
 
     const payload = {
       message: newMessage,
-      history: history
+      history: history,
+      user_context: userContext // Pass context to backend
     };
 
     const response = await fetch(BACKEND_URL, {
