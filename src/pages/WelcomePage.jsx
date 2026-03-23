@@ -15,7 +15,7 @@ export default function WelcomePage() {
       if (footerRef.current) {
         const footerRect = footerRef.current.getBoundingClientRect();
         const windowHeight = window.innerHeight;
-        
+
         // If top of footer is visible (less than window height), calculate overlap
         if (footerRect.top < windowHeight) {
           const overlap = Math.max(0, windowHeight - footerRect.top);
@@ -29,7 +29,7 @@ export default function WelcomePage() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('resize', handleScroll); // Check on resize too
     handleScroll(); // Initial check
-    
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleScroll);
@@ -37,9 +37,9 @@ export default function WelcomePage() {
   }, []);
   return (
     <div className="min-h-screen bg-navy-900 text-white flex flex-col relative overflow-hidden">
-      
+
       <Navbar />
-      
+
       <Hero />
 
       {/* Background Glow Effects - Shared/Global for the page */}
@@ -48,7 +48,7 @@ export default function WelcomePage() {
       <div className="absolute top-[40%] left-[20%] w-[300px] h-[300px] bg-blue-600/10 rounded-full blur-[60px] pointer-events-none"></div>
 
       <div className="max-w-6xl mx-auto text-center z-10 space-y-16 pb-20 px-4">
-        
+
         {/* Secondary Section Header */}
         <div className="space-y-4 animate-fade-in-up pt-16 pb-8">
           <h2 className="text-3xl md:text-5xl font-bold tracking-tight leading-tight">
@@ -100,13 +100,13 @@ export default function WelcomePage() {
 
         {/* CTA Button */}
         <div className="animate-fade-in-up delay-500 pb-10">
-          <button 
+          <button
             onClick={() => navigate('/chat')}
             className="group relative inline-flex items-center justify-center px-10 py-5 text-xl font-bold text-white transition-all duration-300 bg-gradient-to-r from-orange-500 to-orange-600 rounded-full hover:from-orange-400 hover:to-orange-500 hover:scale-105 focus:outline-none focus:ring-4 focus:ring-orange-500/30 shadow-[0_0_20px_rgba(249,115,22,0.4)] hover:shadow-[0_0_30px_rgba(249,115,22,0.6)]"
           >
             <span className="mr-3">Começar Consultoria Gratuita</span>
             <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-            
+
             {/* Ping animation for attention */}
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75"></span>
@@ -116,29 +116,29 @@ export default function WelcomePage() {
         </div>
 
         {/* Floating Corner Avatar with Greeting */}
-        <div 
+        <div
           className="fixed right-4 md:right-10 z-50 flex items-end animate-slide-up delay-1000 origin-bottom"
           style={{ bottom: `${bottomOffset}px` }}
         >
-           <ConsultantAvatar 
-              className="w-40 md:w-56"
-              bubbleContent={
-                  <>
-                    <p className="font-semibold text-sm text-navy-900">Olá! Sou sua Personal Shopper.</p>
-                    <p className="text-sm text-gray-600">Posso ajudar você a escolher o melhor produto hoje?</p>
-                  </>
-              }
-           />
+          <ConsultantAvatar
+            className="w-40 md:w-56"
+            bubbleContent={
+              <>
+                <p className="font-semibold text-sm text-navy-900">Olá! Sou sua Personal Shopper.</p>
+                <p className="text-sm text-gray-600">Posso ajudar você a escolher o melhor produto hoje?</p>
+              </>
+            }
+          />
         </div>
 
       </div>
-      
+
       {/* Footer moved here */}
       <footer ref={footerRef} className="bg-navy-900 border-t border-white/10 py-6 mt-auto relative z-10">
         <div className="max-w-7xl mx-auto px-4 text-center text-gray-400 text-xs">
           <p>&copy; 2026 Personal Shopper IA. Todos os direitos reservados.</p>
         </div>
       </footer>
-    </div>
+    </div >
   );
 }
