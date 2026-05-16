@@ -41,7 +41,8 @@ class ProviderTimeoutException(AppBaseException): pass
 class IntegrationDataException(AppBaseException): pass
 
 # --- 3. Configuração de Logging Profissional (Arquivo + Console) ---
-LOG_FILE = "backend_error.log"
+BASE_DIR = Path(__file__).resolve().parent
+LOG_FILE = str(BASE_DIR / "backend_error.log")
 
 log_formatter = logging.Formatter(
     "%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s:%(lineno)d) - %(message)s"
@@ -63,12 +64,11 @@ root_logger.addHandler(console_handler)
 logger = logging.getLogger("gabi_shopper_api")
 
 # --- 4. Segurança e Variáveis de Ambiente ---
-BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 SERPAPI_KEY = os.getenv("SERPAPI_KEY")
-RAINFOREST_KEY = os.getenv("RAINFOREST_API_KEY")
+RAINFOREST_KEY = os.getenv("RAINFOREST_KEY")
 
 if not API_KEY:
     logger.critical("Erro Crítico: GEMINI_API_KEY não encontrada no arquivo .env")
@@ -192,7 +192,7 @@ def search_google_shopping(product_name: str):
 def search_amazon_prices(product_name: str):
     """Busca preços e disponibilidade na Amazon via Rainforest API."""
     if not RAINFOREST_KEY: 
-        logger.warning(f"[TRACE:{request_trace_id.get()}] RAINFOREST_API_KEY não configurada.")
+        logger.warning(f"[TRACE:{request_trace_id.get()}] RAINFOREST_KEY não configurada.")
         return {"error": "Rainforest key missing"}
     
     url = "https://api.rainforestapi.com/request"
