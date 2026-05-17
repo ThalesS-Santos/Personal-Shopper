@@ -134,24 +134,25 @@ def with_provider_registry(provider_name: str):
                     error_code="HTTP_ERROR", provider=provider_name,
                     suggested_action="Verificar dados enviados", trace_id=trace_id, message=f"Erro HTTP {http_status}"
                 )
-            except errors.ClientError as e:
+            except errors.APIError as e:
                 latency = round((time.time() - start_time) * 1000, 2)
-                logger.warning(f"[TRACE:{trace_id}] PROVIDER_ERROR:{provider_name} STATUS:400 LATENCY:{latency}ms ERROR: {e}")
-                raise IntegrationDataException(
-                    error_code="BAD_REQUEST", provider=provider_name,
-                    suggested_action="Mensagem bloqueada ou inválida. Tente mudar o assunto.", trace_id=trace_id, message=str(e)
+                logger.warning(f"[TRACE:{trace_id}] PROVIDER_ERROR:{provider_name} STATUS:{getattr(e, 'code', 500)} LATENCY:{latency}ms ERROR: {e}")
+                
+                status_code = getattr(e, "code", 500)
+                is_rate_limit = (
+                    status_code == 429 or 
+                    "429" in str(status_code) or 
+                    "429" in str(e) or 
+                    "quota" in str(e).lower()
                 )
-            except errors.ServerError as e:
-                latency = round((time.time() - start_time) * 1000, 2)
-                logger.error(f"[TRACE:{trace_id}] PROVIDER_ERROR:{provider_name} STATUS:500 LATENCY:{latency}ms ERROR: {e}")
-                if "429" in str(e) or getattr(e, 'code', None) == 429:
+                if is_rate_limit:
                     raise ProviderQuotaException(
                         error_code="RATE_LIMIT", provider=provider_name,
-                        suggested_action="Aguardar Reset de Limite", trace_id=trace_id, message="Quota excedida"
+                        suggested_action="Aguardar Reset de Limite", trace_id=trace_id, message="Quota excedida de requisições."
                     )
                 raise IntegrationDataException(
-                    error_code="SERVER_ERROR", provider=provider_name,
-                    suggested_action="A Inteligência Artificial está processando muitas infos. Tente depois.", trace_id=trace_id, message=str(e)
+                    error_code="API_ERROR", provider=provider_name,
+                    suggested_action="A Inteligência Artificial está processando muitas informações. Tente novamente mais tarde.", trace_id=trace_id, message=str(e)
                 )
             except AppBaseException:
                 raise
@@ -168,8 +169,12 @@ def with_provider_registry(provider_name: str):
 # --- 7. Ferramentas (Tools) refatoradas com o Decorator ---
 
 @with_provider_registry(provider_name="SerpApi_Shopping")
-def search_google_shopping(product_name: str):
-    """Busca preços e lojas reais no Google Shopping via SerpApi."""
+def search_live_prices(product_query: str) -> dict:
+    """Busca preços reais e lojas de eletrodomésticos no Brasil em tempo real para comparação.
+
+    Args:
+        product_query: Nome completo ou modelo do eletrodoméstico para busca de preços.
+    """
     if not SERPAPI_KEY: 
         logger.warning(f"[TRACE:{request_trace_id.get()}] SERPAPI_KEY não configurada.")
         return {"error": "SerpApi key missing"}
@@ -177,7 +182,7 @@ def search_google_shopping(product_name: str):
     url = "https://serpapi.com/search"
     params = {
         "engine": "google_shopping",
-        "q": product_name,
+        "q": product_query,
         "hl": "pt-br",
         "gl": "br",
         "api_key": SERPAPI_KEY
@@ -186,7 +191,17 @@ def search_google_shopping(product_name: str):
     response.raise_for_status()
     data = response.json()
     results = data.get("shopping_results", [])[:3]
-    return [{"title": r.get("title"), "price": r.get("price"), "source": r.get("source"), "link": r.get("link")} for r in results]
+    return {
+        "results": [
+            {
+                "title": r.get("title"),
+                "price": r.get("price"),
+                "source": r.get("source"),
+                "link": r.get("link")
+            }
+            for r in results
+        ]
+    }
 
 @with_provider_registry(provider_name="Rainforest")
 def search_amazon_prices(product_name: str):
@@ -233,8 +248,29 @@ def search_technical_specs(query: str):
     results = data.get("organic_results", [])[:2]
     return [{"title": r.get("title"), "snippet": r.get("snippet"), "link": r.get("link")} for r in results]
 
+# --- 7. Ferramentas (Tools) e RAG em Tempo Real ---
+# 
+# NOTA DE ARQUITETURA CRÍTICA (Engenharia de IA / Restrição da API Gemini):
+# Com base na documentação oficial e testes reais da API do Google Gemini, ferramentas nativas de busca 
+# (como GoogleSearch / GoogleSearchRetrieval) e Function Calling personalizadas (como as nossas de busca 
+# de preços e especificações) NÃO podem ser mescladas em uma mesma requisição. Se combinadas, a API do Gemini
+# rejeita a requisição e retorna um erro 400 (INVALID_ARGUMENT: Built-in tools and Function Calling cannot
+# be combined in the same request). Além disso, a classe GoogleSearchRetrieval está obsoleta na API do Gemini.
+#
+# Para fornecer à Gabi capacidades robustas de RAG em tempo real e de busca de preços sem causar travamentos:
+# 1. search_live_prices: Para busca de preços reais e lojas no Brasil via SerpApi Google Shopping.
+# 2. search_technical_specs: Para busca teórica/RAG de especificações e reviews na web via SerpApi Google Search.
+# Ambas são registradas como Callables normais para habilitar a execução automática (Automatic Function Calling).
+# 
+# Caso no futuro a API permita a coexistência da busca nativa com funções, o modelo a seguir poderá ser usado:
+# TOOLS = [
+#     types.Tool(google_search=types.GoogleSearch()),
+#     search_live_prices,
+#     search_technical_specs
+# ]
+
 TOOLS = [
-    search_google_shopping,
+    search_live_prices,
     search_amazon_prices,
     search_technical_specs
 ]
@@ -259,9 +295,10 @@ Dados importantes para descobrir (não pergunte tudo de uma vez):
 - **Inverse**: Geladeira com freezer embaixo.
 
 # DIRETRIZES RAG (OBRIGATÓRIO)
-- **NÃO DIGA** "Vou pesquisar" ou "Aguarde um momento". **Apenas pesquise** silenciosamente e já traga a resposta com os dados.
-- Antes de recomendar qualquer produto, SEMPRE valide preços e estoque real usando `search_google_shopping` ou `search_amazon_prices`.
-- Use `search_technical_specs` para validar detalhes técnicos.
+- **COMPORTAMENTO PROATIVO DE BUSCA**: Você deve usar de forma proativa as ferramentas de busca sempre que o usuário pedir indicações, perguntar sobre modelos específicos, pedir para comparar marcas, ou perguntar sobre preços e durabilidade.
+- **NÃO DIGA** "Vou pesquisar" ou "Aguarde um momento". **Apenas pesquise** silenciosamente usando `search_live_prices` ou `search_technical_specs` e já traga a resposta consolidada.
+- Antes de recomendar qualquer produto, SEMPRE valide preços e estoque real usando a ferramenta `search_live_prices` para buscar preços e lojas no Brasil em tempo real.
+- Use `search_technical_specs` para validar ficha técnica, durabilidade e reviews.
 - Se houver divergência de preços, aponte a melhor oportunidade de custo-benefício.
 
 # MECANISMOS DE SEGURANÇA (GUARDRAILS)

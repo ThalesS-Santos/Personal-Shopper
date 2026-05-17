@@ -70,10 +70,10 @@ class TestErrorPipeline(unittest.TestCase):
         mock_get.return_value = mock_response
 
         # Chama a Tool diretamente para testar o decorator
-        from main import search_google_shopping
+        from main import search_live_prices
         
         with self.assertLogs('gabi_shopper_api', level='INFO') as log_capture:
-            search_google_shopping("geladeira")
+            search_live_prices("geladeira")
             
         # Verifica se o log imprimiu o tempo (2s = 2000ms)
         log_output = "\n".join(log_capture.output)
